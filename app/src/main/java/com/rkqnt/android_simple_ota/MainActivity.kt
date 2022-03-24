@@ -12,12 +12,15 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.ParcelUuid
+import android.provider.MediaStore
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -29,6 +32,10 @@ import com.rkqnt.android_simple_ota.btsearch.BtListAdapter
 import com.rkqnt.android_simple_ota.databinding.ActivityMainBinding
 import com.rkqnt.android_simple_ota.ota.*
 import timber.log.Timber
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
 
 
 class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener {
@@ -48,6 +55,9 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         private const val FINE_LOCATION_PERMISSION_REQUEST= 1001
         const val STORAGE = 20
         const val BACKGROUND_LOCATION = 67
+        const val FILE_PICK = 56
+
+        const val UPDATE_FILE = "update.bin"
 
         lateinit var btAdapter: BluetoothAdapter
 
@@ -79,6 +89,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             adapter = deviceAdapter
         }
 
+        // BLE 탐색버튼
         binding.btnBleSearch.setOnClickListener {
             stopService(Intent(this, OtaService::class.java))
 
@@ -91,14 +102,140 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
                  //   requestBackground()
                 //} else {
                     if (bluetoothAdapter.isEnabled) {
-                        Log.d("ddddddd","시작?3")
-                        scanLeDevice(true) //make sure scan function won't be called several times
+                        scanLeDevice(true)
                     }
                 //}
             //}
         }
 
+        // 파일 탐색 버튼
+        binding.btnFileSearch.setOnClickListener {
+            if (checkExternal()) {
+                var chooseFile = Intent(Intent.ACTION_GET_CONTENT)
+                chooseFile.type = "*/*"
+                chooseFile = Intent.createChooser(chooseFile, "Choose a file")
+                startActivityForResult(chooseFile, FILE_PICK)
+            } else {
+                requestExternal()
+            }
+        }
+
+        // 파일 전송 버튼
+        binding.btnOta.setOnClickListener {
+            startOta = System.currentTimeMillis()
+            /*clearData()
+            val parts = generate()
+            OtaService.parts = parts
+            if (OtaService().sendData(byteArrayOfInts(0xFD))) {
+                Toast.makeText(this, "Uploading file", Toast.LENGTH_SHORT).show()
+                OtaService().sendData(
+                    byteArrayOfInts(
+                        0xFF,
+                        parts / 256,
+                        parts % 256,
+                        mtu / 256,
+                        mtu % 256
+                    )
+                )
+                start = System.currentTimeMillis()
+
+            } else {
+                Toast.makeText(this, "디바이스와 연결되지않음", Toast.LENGTH_SHORT).show()
+            }*/
+        }
+
         requestBlePermissions(this,0)
+    }
+
+    /** -----------------------------------------------파일 관련 ------------------------------------------------------- **/
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        Timber.e("RequestCode= $requestCode, ResultCode= $resultCode, Data= ${data != null}")
+        if (resultCode == Activity.RESULT_OK) {
+            if (data != null && requestCode == FILE_PICK) {
+                val selectedFile = data.data
+                if (selectedFile != null) {
+                    val filePath = RealPathUtil.getRealPath(this, selectedFile)     // 실제 외부 저장소의 경로 파악
+                    if (filePath != null) {
+                        Log.d("dddd",selectedFile.toString())
+                        saveFile(File(filePath), null)
+                    }
+                }
+            }
+        }
+    }
+
+    @Throws(IOException::class)
+    fun saveFile(src: File?, uri: Uri?) {
+
+        val directory = this.cacheDir           // 내부 저장소 (캐시) 루트 경로
+        if (!directory.exists()) {
+            directory.mkdirs()
+        }
+
+        val dst = File(directory, UPDATE_FILE)              // 내부 저장소에 펌웨어 파일을 옮겨받을 업데이트 파일 생성
+        if (dst.exists()){
+            dst.delete()
+
+        }
+        if (src != null) {
+            val info = File(directory, "info.txt")          // 내부 저장소에 선택한 '펌웨어파일'에 대한 정보(info) : 실제 저장소 위치 및 이름
+            info.writeText(src.name)
+
+            Log.d("dddd",src.name)
+
+            FileInputStream(src).use { `in` ->
+                FileOutputStream(dst).use { out ->
+                    // Transfer bytes from in to out
+                    val buf = ByteArray(1024)
+                    var len: Int
+                    while (`in`.read(buf).also { len = it } > 0) {
+                        out.write(buf, 0, len)
+                    }
+                }
+            }
+            val fos = FileOutputStream(dst, true)
+            fos.flush()
+            fos.close()
+        }
+        if (uri != null){
+            val info = File(directory, "info.txt")
+            info.writeText("firmware.bin")
+
+            contentResolver.openInputStream(uri).use { `in` ->
+                FileOutputStream(dst).use { out ->
+                    // Transfer bytes from in to out
+                    val buf = ByteArray(1024)
+                    var len: Int
+                    while (`in`!!.read(buf).also { len = it } > 0) {
+                        out.write(buf, 0, len)
+                    }
+                }
+            }
+            val fos = FileOutputStream(dst, true)
+            fos.flush()
+            fos.close()
+        }
+    }
+
+
+    private fun checkExternal(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ActivityCompat.checkSelfPermission(
+                this@MainActivity,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED) {
+            return false
+        }
+        return true
+    }
+
+    private fun requestExternal(){
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+            STORAGE
+        )
     }
 
     private val BLE_PERMISSIONS = arrayOf(
@@ -240,7 +377,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         scanLeDevice(false)
         deviceAddress = device.address
 
-        //alertDialog.dismiss()
         if (!isBonded(device)){
             createBond(device)
         } else {
@@ -332,7 +468,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
     override fun onConnectionChanged(state: Boolean) {
         runOnUiThread {
             OtaService.connected = state
-            //setIcon(FG.connected)
             if (OtaService.connected) {
                 binding.progressBar.visibility = View.INVISIBLE
                 binding.txtBtname.text = "연결된 BT : "+OtaService.deviceName
