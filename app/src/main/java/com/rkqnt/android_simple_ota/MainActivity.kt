@@ -123,8 +123,8 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         // 파일 전송 버튼
         binding.btnOta.setOnClickListener {
             startOta = System.currentTimeMillis()
-            /*clearData()
-            val parts = generate()
+            clearData()
+            /*val parts = generate()
             OtaService.parts = parts
             if (OtaService().sendData(byteArrayOfInts(0xFD))) {
                 Toast.makeText(this, "Uploading file", Toast.LENGTH_SHORT).show()
@@ -166,26 +166,44 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        val directory = this.cacheDir
+        val img = File(directory, UPDATE_FILE)
+        val info = File(directory, "info.txt")
+        val name = if (img.exists()){
+            if (info.exists() && info.canRead()){
+                info.readText()
+            } else {
+                "no file"
+            }
+        } else {
+            "no file"
+        }
+        binding.txtBin.text = "파일명 : $name"
+    }
+
     @Throws(IOException::class)
     fun saveFile(src: File?, uri: Uri?) {
 
-        val directory = this.cacheDir           // 내부 저장소 (캐시) 루트 경로
+        val directory = this.cacheDir           // 앱별 저장소 (캐시) 루트 경로
         if (!directory.exists()) {
             directory.mkdirs()
         }
 
-        val dst = File(directory, UPDATE_FILE)              // 내부 저장소에 펌웨어 파일을 옮겨받을 업데이트 파일 생성
+        val dst = File(directory, UPDATE_FILE)              // 공유 저장소에 펌웨어 파일을 옮겨받을 업데이트 파일(앱별 저장소) 생성
         if (dst.exists()){
             dst.delete()
-
         }
+
         if (src != null) {
             val info = File(directory, "info.txt")          // 내부 저장소에 선택한 '펌웨어파일'에 대한 정보(info) : 실제 저장소 위치 및 이름
-            info.writeText(src.name)
+            info.writeText(src.name)                             // 파일 이름을 info에 적어놓음
 
             Log.d("dddd",src.name)
 
-            FileInputStream(src).use { `in` ->
+            FileInputStream(src).use { `in` ->                  // src(외부) -> dst(내부)  로 복사
                 FileOutputStream(dst).use { out ->
                     // Transfer bytes from in to out
                     val buf = ByteArray(1024)
@@ -199,7 +217,9 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             fos.flush()
             fos.close()
         }
-        if (uri != null){
+
+        // 이건 안쓰는듯
+        /*if (uri != null){
             val info = File(directory, "info.txt")
             info.writeText("firmware.bin")
 
@@ -216,6 +236,18 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             val fos = FileOutputStream(dst, true)
             fos.flush()
             fos.close()
+        }*/
+    }
+
+    @Throws(IOException::class)
+    fun clearData() {
+        val directory = this.cacheDir
+        if (!directory.exists()) {
+            directory.mkdirs()
+        }
+        val upload = File(directory, "data")
+        if (upload.exists()) {
+            upload.deleteRecursively()
         }
     }
 
@@ -237,6 +269,9 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             STORAGE
         )
     }
+
+
+    /*******************************************  이하 스캔 및 연결 **************************************************/
 
     private val BLE_PERMISSIONS = arrayOf(
         Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -281,7 +316,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         }
     }
 
-    /**  이하 스캔 및 연결 **/
 
     @SuppressLint("MissingPermission")
     private fun createBond(btDev: BtDevice){
