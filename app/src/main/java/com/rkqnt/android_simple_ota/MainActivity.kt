@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         const val STORAGE = 20
         const val BACKGROUND_LOCATION = 67
         const val FILE_PICK = 56
+        const val PART = 16384 //16384
 
         const val UPDATE_FILE = "update.bin"
 
@@ -124,9 +125,9 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         binding.btnOta.setOnClickListener {
             startOta = System.currentTimeMillis()
             clearData()
-            /*val parts = generate()
+            val parts = generate()
             OtaService.parts = parts
-            if (OtaService().sendData(byteArrayOfInts(0xFD))) {
+            /*if (OtaService().sendData(byteArrayOfInts(0xFD))) {
                 Toast.makeText(this, "Uploading file", Toast.LENGTH_SHORT).show()
                 OtaService().sendData(
                     byteArrayOfInts(
@@ -203,7 +204,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
 
             Log.d("dddd",src.name)
 
-            FileInputStream(src).use { `in` ->                  // src(외부) -> dst(내부)  로 복사
+            FileInputStream(src).use { `in` ->                  // src(외부) -> dst(내부)  로 복사 (update.bin 에)
                 FileOutputStream(dst).use { out ->
                     // Transfer bytes from in to out
                     val buf = ByteArray(1024)
@@ -217,26 +218,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             fos.flush()
             fos.close()
         }
-
-        // 이건 안쓰는듯
-        /*if (uri != null){
-            val info = File(directory, "info.txt")
-            info.writeText("firmware.bin")
-
-            contentResolver.openInputStream(uri).use { `in` ->
-                FileOutputStream(dst).use { out ->
-                    // Transfer bytes from in to out
-                    val buf = ByteArray(1024)
-                    var len: Int
-                    while (`in`!!.read(buf).also { len = it } > 0) {
-                        out.write(buf, 0, len)
-                    }
-                }
-            }
-            val fos = FileOutputStream(dst, true)
-            fos.flush()
-            fos.close()
-        }*/
     }
 
     @Throws(IOException::class)
@@ -248,6 +229,33 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         val upload = File(directory, "data")
         if (upload.exists()) {
             upload.deleteRecursively()
+        }
+    }
+
+    @Throws(IOException::class)
+    fun generate(): Int {
+        val bytes = File(this.cacheDir, "update.bin").readBytes()           // 아까 앱별 저장소에 옮겨둔 update.bin 읽음
+        val s = bytes.size / PART                                                // PART 만큼씩 분할함
+
+        for (x in 0 until s) {
+            val data = ByteArray(PART)
+            for (y in 0 until PART) {
+                data[y] = bytes[(x * PART) + y]
+            }
+            saveData(data, x)
+
+        }
+        if (bytes.size % PART != 0) {
+            val data = ByteArray(bytes.size % PART)
+            for (y in 0 until bytes.size % PART) {
+                data[y] = bytes[(s * PART) + y]
+            }
+            saveData(data, s)
+        }
+        return if (bytes.size % PART == 0) {
+            (bytes.size / PART)
+        } else {
+            (bytes.size / PART) + 1
         }
     }
 
