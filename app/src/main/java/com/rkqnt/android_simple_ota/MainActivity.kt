@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         const val STORAGE = 20
         const val BACKGROUND_LOCATION = 67
         const val FILE_PICK = 56
-        const val PART = 16384 //16384
+        var PART = 16384 //16384
 
         const val UPDATE_FILE = "update.bin"
 
@@ -125,9 +125,20 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         binding.btnOta.setOnClickListener {
             startOta = System.currentTimeMillis()
             clearData()
-            val parts = generate()
+
+
+            if(binding.editMtu.text.isNotEmpty()){
+                mtu = binding.editMtu.text.toString().toInt()
+            }else Toast.makeText(applicationContext,"MTU 값을 입력하시오",Toast.LENGTH_SHORT)
+
+            if(binding.editPart.text.isNotEmpty()){
+                PART = binding.editPart.text.toString().toInt()
+            }else Toast.makeText(applicationContext,"PART 값을 입력하시오",Toast.LENGTH_SHORT)
+
+
+            val parts = generate()          // 몇개의 bin 파일로 분할 되었는지
             OtaService.parts = parts
-            /*if (OtaService().sendData(byteArrayOfInts(0xFD))) {
+            if (OtaService().sendData(byteArrayOfInts(0xFD))) {
                 Toast.makeText(this, "Uploading file", Toast.LENGTH_SHORT).show()
                 OtaService().sendData(
                     byteArrayOfInts(
@@ -142,7 +153,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
 
             } else {
                 Toast.makeText(this, "디바이스와 연결되지않음", Toast.LENGTH_SHORT).show()
-            }*/
+            }
         }
 
         requestBlePermissions(this,0)
@@ -242,21 +253,39 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             for (y in 0 until PART) {
                 data[y] = bytes[(x * PART) + y]
             }
-            saveData(data, x)
+            saveData(data, x)           // PART 만큼 분할된 바이트 어레이 저장   (분할된 데이터 파일은 data0.bin, data1.bin 이런식으로 분할됨)
 
         }
-        if (bytes.size % PART != 0) {
+        if (bytes.size % PART != 0) {       // PART 크기로 나누어 떨어지지 않는 파일 크기(분할하고 남은 부분)
             val data = ByteArray(bytes.size % PART)
             for (y in 0 until bytes.size % PART) {
                 data[y] = bytes[(s * PART) + y]
             }
-            saveData(data, s)
+            saveData(data, s)           // s번째 bin 파일로
         }
         return if (bytes.size % PART == 0) {
             (bytes.size / PART)
         } else {
             (bytes.size / PART) + 1
         }
+    }
+
+
+    @Throws(IOException::class)
+    fun saveData(byteArray: ByteArray, pos: Int) {
+        val directory = this.cacheDir
+        if (!directory.exists()) {
+            directory.mkdirs()
+        }
+        val upload = File(directory, "data")        // data 폴더 생성, 폴더 내에 분할된 bin 파일 쓰기
+        if (!upload.exists()) {
+            upload.mkdirs()
+        }
+        val data = File(upload, "data$pos.bin")
+        val fos = FileOutputStream(data, true)
+        fos.write(byteArray)
+        fos.flush()
+        fos.close()
     }
 
 
