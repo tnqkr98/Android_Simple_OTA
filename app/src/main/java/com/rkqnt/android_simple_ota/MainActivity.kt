@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
 
         lateinit var btAdapter: BluetoothAdapter
 
-        var mtu = 500
+        var mtu = 512
         var deviceAddress = ""
 
         var start = 0L
@@ -78,6 +78,11 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
+
+        ProgressReceiver.bindListener(this)
         ConnectionReceiver.bindListener(this)
         btAdapter = BluetoothAdapter.getDefaultAdapter()
 
@@ -150,7 +155,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
                     )
                 )
                 start = System.currentTimeMillis()
-
+                Toast.makeText(this, "Start With MTU=$mtu, PART=$PART", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "디바이스와 연결되지않음", Toast.LENGTH_SHORT).show()
             }

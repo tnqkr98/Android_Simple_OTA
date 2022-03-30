@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -50,6 +51,9 @@ class OtaService : Service(), DataListener {
         bleManager = LEManager(this)
         (bleManager as LEManager).setGattCallbacks(bleManagerCallback)
         (bleManager as LEManager).connect(leDevice).enqueue()
+
+        registerReceiver(bluetoothReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+        DataReceiver.bindListener(this)
     }
 
 
@@ -157,6 +161,7 @@ class OtaService : Service(), DataListener {
         isReconnect = false
         startID = 0
         bleManager?.close()
+
 
         unregisterReceiver(bluetoothReceiver)
         super.onDestroy()
