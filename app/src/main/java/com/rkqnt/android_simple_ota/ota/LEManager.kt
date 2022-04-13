@@ -22,9 +22,19 @@ class LEManager(context: Context) : BleManager<LeManagerCallbacks>(context) {
 
     companion object {
         const val MTU = 512
+        val OTA_SERVICE_UUID:      UUID = UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
+        val OTA_TX_CHARACTERISTIC: UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
+        val OTA_RX_CHARACTERISTIC: UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e")
+
+        /*const val GOSLEEP_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+        const val GOSLEEP_CHARACTERISTIC_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+        const val GOSLEEP_CHARACTERISTIC_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"*/
+
+        /*
         val OTA_SERVICE_UUID:      UUID = UUID.fromString("fb1e4001-54ae-4a28-9f74-dfccb248601d")
         val OTA_TX_CHARACTERISTIC: UUID = UUID.fromString("fb1e4002-54ae-4a28-9f74-dfccb248601d")
         val OTA_RX_CHARACTERISTIC: UUID = UUID.fromString("fb1e4003-54ae-4a28-9f74-dfccb248601d")
+        * */
     }
 
     /**
