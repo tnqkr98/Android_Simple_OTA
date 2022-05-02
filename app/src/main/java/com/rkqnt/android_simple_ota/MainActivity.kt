@@ -56,13 +56,13 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         const val STORAGE = 20
         const val BACKGROUND_LOCATION = 67
         const val FILE_PICK = 56
-        var PART = 16384 //16384
+        var PART = 16384
 
         const val UPDATE_FILE = "update.bin"
 
         lateinit var btAdapter: BluetoothAdapter
 
-        var mtu = 512
+        var mtu = 500
         var deviceAddress = ""
 
         var start = 0L
@@ -99,19 +99,9 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         binding.btnBleSearch.setOnClickListener {
             stopService(Intent(this, OtaService::class.java))
 
-            //if (!checkLocation()){
-            //    Log.d("ddddddd","시작?1")
-            //    requestLocation()
-            //} else {
-                //if (!checkFINE()){
-                //    Log.d("ddddddd","시작?2")
-                 //   requestBackground()
-                //} else {
-                    if (bluetoothAdapter.isEnabled) {
-                        scanLeDevice(true)
-                    }
-                //}
-            //}
+            if (bluetoothAdapter.isEnabled) {
+                scanLeDevice(true)
+            }
         }
 
         // 파일 탐색 버튼
@@ -131,7 +121,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             startOta = System.currentTimeMillis()
             clearData()
 
-
             if(binding.editMtu.text.isNotEmpty()){
                 mtu = binding.editMtu.text.toString().toInt()
             }else Toast.makeText(applicationContext,"MTU 값을 입력하시오",Toast.LENGTH_SHORT)
@@ -145,6 +134,11 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             OtaService.parts = parts
             if (OtaService().sendData(byteArrayOfInts(0xFD))) {
                 Toast.makeText(this, "Uploading file", Toast.LENGTH_SHORT).show()
+
+                // TODO - new fix (이하 두줄)
+                val len = File(this.cacheDir, UPDATE_FILE).length()//
+                OtaService().sendData(byteArrayOfInts(0xFE, ((len shr 24) and 0xFF).toInt(), ((len shr 16) and 0xFF).toInt(), ((len shr 8) and 0xFF).toInt(), ((len) and 0xFF).toInt()))
+
                 OtaService().sendData(
                     byteArrayOfInts(
                         0xFF,

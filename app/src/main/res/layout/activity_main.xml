@@ -209,7 +209,7 @@
                 android:layout_height="wrap_content"
                 android:ems="10"
                 android:inputType="numberDecimal"
-                android:text="512" />
+                android:text="500" />
         </LinearLayout>
 
         <LinearLayout

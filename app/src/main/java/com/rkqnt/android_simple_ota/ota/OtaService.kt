@@ -218,9 +218,9 @@ class OtaService : Service(), DataListener {
             //notifyProgress("Finishing up", 100, context)
             ProgressReceiver().getProgress(100, "Transfer Complete")
             Handler().postDelayed({
-                sendData(byteArrayOfInts(0xFE)) // send restart command
+                //sendData(byteArrayOfInts(0xFE)) // send restart command
                 //cancelNotification(SERVICE_ID2, context)
-            }, 2000)
+            }, 2000) // TODO - new fix
         }
 
         if (data.getByte(0) == (0x0F).toByte()){
