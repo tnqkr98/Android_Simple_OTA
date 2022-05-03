@@ -44,7 +44,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
     private var deviceList = ArrayList<BtDevice>()
     private var deviceAdapter = BtListAdapter(deviceList, deviceAddress,this@MainActivity::selectedDevice)
     private var mScanning: Boolean = false
-    private lateinit var alertDialog: AlertDialog
 
     private val bluetoothAdapter: BluetoothAdapter by lazy(LazyThreadSafetyMode.NONE) {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -54,7 +53,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
     companion object {
         private const val FINE_LOCATION_PERMISSION_REQUEST= 1001
         const val STORAGE = 20
-        const val BACKGROUND_LOCATION = 67
         const val FILE_PICK = 56
         var PART = 16384
 
@@ -377,8 +375,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             FINE_LOCATION_PERMISSION_REQUEST -> {
                 if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                     scanLeDevice(true)
-                } else {
-                    //tvTestNote.text= getString(R.string.allow_location_detection)
                 }
                 return
             }
@@ -388,59 +384,11 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
                     chooseFile.type = "*/*"
                     chooseFile = Intent.createChooser(chooseFile, "Choose a file")
                     startActivityForResult(chooseFile, 20)
-                } else {
-                    //tvTestNote.text= getString(R.string.allow_location_detection)
                 }
                 return
             }
         }
     }
-
-    // 위치 권한 확인
-    /*private fun checkLocation(): Boolean {
-        if (ActivityCompat.checkSelfPermission(
-                this@MainActivity,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this@MainActivity,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED) {
-            return false
-        }
-
-        return true
-    }
-
-    // 위치 권한 요청
-    private fun requestLocation(){
-        Log.d("dddd","위치요청")
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION),
-            FINE_LOCATION_PERMISSION_REQUEST
-        )
-    }
-
-    // Fine 위치 권한 확인
-    private fun checkFINE(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && ActivityCompat.checkSelfPermission(
-                this@MainActivity,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED) {
-            return false
-        }
-        return true
-    }
-
-    // Fine 위치 권한 요청
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private fun requestBackground(){
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-            BACKGROUND_LOCATION
-        )
-    }*/
 
     // 어댑터로부터 데이터 받을 콜백 함수 (사용자가 선택한 디바이스 정보 콜백)
     private fun selectedDevice(device: BtDevice){

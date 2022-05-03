@@ -64,10 +64,7 @@ class OtaService : Service(), DataListener {
             //service restarted
             Timber.w("onStartCommand - already running")
         } else {
-            //started by intent or pending intent
             this.startID = startId
-            //val notification = notify(getString(R.string.scan), false,  SERVICE_ID)
-            //startForeground(SERVICE_ID, notification)
 
             if (intent.hasExtra("origin")){
                 Timber.w("Service started on device boot")
@@ -215,12 +212,11 @@ class OtaService : Service(), DataListener {
         if (data.getByte(0) == (0xF2).toByte()) {
             Timber.w("Transfer complete")
             Toast.makeText(context, "Transfer Complete", Toast.LENGTH_SHORT).show()
-            //notifyProgress("Finishing up", 100, context)
             ProgressReceiver().getProgress(100, "Transfer Complete")
-            Handler().postDelayed({
+            /*Handler().postDelayed({
                 //sendData(byteArrayOfInts(0xFE)) // send restart command
                 //cancelNotification(SERVICE_ID2, context)
-            }, 2000) // TODO - new fix
+            }, 2000)*/
         }
 
         if (data.getByte(0) == (0x0F).toByte()){
