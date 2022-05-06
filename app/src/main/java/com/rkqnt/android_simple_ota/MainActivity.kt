@@ -114,6 +114,10 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
             }
         }
 
+        binding.btnFileDown.setOnClickListener {
+
+        }
+
         // 파일 전송 버튼
         binding.btnOta.setOnClickListener {
             startOta = System.currentTimeMillis()
@@ -135,7 +139,12 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
 
                 // TODO - new fix (이하 두줄)
                 val len = File(this.cacheDir, UPDATE_FILE).length()//
-                OtaService().sendData(byteArrayOfInts(0xFE, ((len shr 24) and 0xFF).toInt(), ((len shr 16) and 0xFF).toInt(), ((len shr 8) and 0xFF).toInt(), ((len) and 0xFF).toInt()))
+                OtaService().sendData(byteArrayOfInts(
+                    0xFE,
+                    ((len shr 24) and 0xFF).toInt(),
+                    ((len shr 16) and 0xFF).toInt(),
+                    ((len shr 8) and 0xFF).toInt(),
+                    ((len) and 0xFF).toInt()))
 
                 OtaService().sendData(
                     byteArrayOfInts(
@@ -167,8 +176,8 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
                 if (selectedFile != null) {
                     val filePath = RealPathUtil.getRealPath(this, selectedFile)     // 실제 외부 저장소의 경로 파악
                     if (filePath != null) {
-                        Log.d("dddd",selectedFile.toString())
-                        saveFile(File(filePath), null)
+                        Log.d("dddd","selected File : $selectedFile realPath : $filePath")
+                        saveFile(File(filePath), null)  // 리얼저장소 주소에 있는 파일(선택한 파일)의 참조 객체(File) 전달
                     }
                 }
             }
@@ -196,7 +205,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
     @Throws(IOException::class)
     fun saveFile(src: File?, uri: Uri?) {
 
-        val directory = this.cacheDir           // 앱별 저장소 (캐시) 루트 경로
+        val directory = this.cacheDir           // 앱별(내부) 저장소 (캐시) 루트 경로
         if (!directory.exists()) {
             directory.mkdirs()
         }
@@ -207,10 +216,8 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         }
 
         if (src != null) {
-            val info = File(directory, "info.txt")          // 내부 저장소에 선택한 '펌웨어파일'에 대한 정보(info) : 실제 저장소 위치 및 이름
-            info.writeText(src.name)                             // 파일 이름을 info에 적어놓음
-
-            Log.d("dddd",src.name)
+            val info = File(directory, "info.txt")          // 내부 저장소에 선택한 '펌웨어이름'에 대한 정보 저장용 .txt 파일 생성(info)
+            info.writeText(src.name)                             // 파일 이름을 info.txt에 적어놓음 (onResume 용, 쓸데없음)
 
             FileInputStream(src).use { `in` ->                  // src(외부) -> dst(내부)  로 복사 (update.bin 에)
                 FileOutputStream(dst).use { out ->
