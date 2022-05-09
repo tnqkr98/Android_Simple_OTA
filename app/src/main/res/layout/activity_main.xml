@@ -178,7 +178,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="파일명 : --"
+            android:text="파일 다운로드 상태 : 미완료"
             android:textColor="@color/black" />
 
         <Button
@@ -261,17 +261,5 @@
                 android:text="16384" />
         </LinearLayout>
     </LinearLayout>
-
-    <androidx.appcompat.widget.AppCompatEditText
-        android:layout_width="300dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="632dp"
-        android:inputType=""
-        app:layout_constraintEnd_toEndOf="@+id/recyclerview"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-    </androidx.appcompat.widget.AppCompatEditText>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

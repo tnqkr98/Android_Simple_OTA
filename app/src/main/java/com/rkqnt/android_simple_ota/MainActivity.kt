@@ -1,28 +1,30 @@
 package com.rkqnt.android_simple_ota
 
+import RealPathUtil
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.DownloadManager
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.ParcelUuid
-import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -57,6 +59,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         var PART = 16384
 
         const val UPDATE_FILE = "update.bin"
+        const val FIRMWARE_FILE = "firmware.bin"
 
         lateinit var btAdapter: BluetoothAdapter
 
@@ -69,12 +72,51 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         var timeOta = 0L
     }
 
+    private var downloadId: Long = -1L
+    private lateinit var downloadPath: String
+    private lateinit var downloadManager: DownloadManager
+
+    private val onDownloadComplete = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+            if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.action)) {
+                if (downloadId == id) {
+                    val query: DownloadManager.Query = DownloadManager.Query()
+                    query.setFilterById(id)
+                    var cursor = downloadManager.query(query)
+                    if (!cursor.moveToFirst()) {
+                        return
+                    }
+
+                    var columnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                    var status = cursor.getInt(columnIndex)
+                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                        saveFile(File(downloadPath), null)
+                        binding.txtBin2.text = "파일 다운로드 상태 : 완료"
+                        Toast.makeText(context, "Download succeeded", Toast.LENGTH_SHORT).show()
+                    } else if (status == DownloadManager.STATUS_FAILED) {
+                        Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else if (DownloadManager.ACTION_NOTIFICATION_CLICKED.equals(intent.action)) {
+                Toast.makeText(context, "Notification clicked", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
     // UI 뷰 초기화
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+        intentFilter.addAction(DownloadManager.ACTION_NOTIFICATION_CLICKED)
+        registerReceiver(onDownloadComplete, intentFilter)
 
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
@@ -115,7 +157,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         }
 
         binding.btnFileDown.setOnClickListener {
-
+            downloadFile()
         }
 
         // 파일 전송 버튼
@@ -163,6 +205,54 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
         }
 
         requestBlePermissions(this,0)
+        checkVerify()
+    }
+
+    /** -----------------------------------------------다운 관련 ------------------------------------------------------- **/
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun downloadFile(){
+        val dstUri = File(getExternalFilesDir(null), "gosleepFirmware")
+
+        if(!dstUri.exists()){
+            dstUri.mkdir()
+        }
+
+        val dstFileUri = File(dstUri,FIRMWARE_FILE)
+        if(dstFileUri.exists()){
+            dstFileUri.delete()
+        }
+
+        val srcUrl = Config.RES_URL
+
+        val request = DownloadManager.Request(Uri.parse(srcUrl))
+            .setTitle("고슬립 펌웨어 업데이트")
+            .setDescription("고슬립 펌웨어 다운로드중..")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+            .setDestinationUri(Uri.fromFile(dstFileUri))
+            .setRequiresCharging(false)
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(true)
+
+
+        downloadId = downloadManager.enqueue(request)
+        downloadPath = dstFileUri.path
+        Log.d("ddddd tag", "path : " + dstFileUri.path)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun checkVerify() {
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            }
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ), 1
+            )
+        }
     }
 
     /** -----------------------------------------------파일 관련 ------------------------------------------------------- **/
@@ -506,5 +596,6 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
     override fun onDestroy() {
         super.onDestroy()
         stopService(Intent(this, OtaService::class.java))
+        unregisterReceiver(onDownloadComplete)
     }
 }
