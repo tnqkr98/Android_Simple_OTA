@@ -91,7 +91,7 @@ class MainActivity : AppCompatActivity() , ConnectionListener, ProgressListener 
                     var columnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
                     var status = cursor.getInt(columnIndex)
                     if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                        saveFile(File(downloadPath), null)
+                        saveFile(File(downloadPath), null)      // 파일 저장
                         binding.txtBin2.text = "파일 다운로드 상태 : 완료"
                         Toast.makeText(context, "Download succeeded", Toast.LENGTH_SHORT).show()
                     } else if (status == DownloadManager.STATUS_FAILED) {

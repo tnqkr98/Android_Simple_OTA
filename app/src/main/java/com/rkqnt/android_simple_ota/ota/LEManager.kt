@@ -35,6 +35,7 @@ class LEManager(context: Context) : BleManager<LeManagerCallbacks>(context) {
         val OTA_TX_CHARACTERISTIC: UUID = UUID.fromString("fb1e4002-54ae-4a28-9f74-dfccb248601d")
         val OTA_RX_CHARACTERISTIC: UUID = UUID.fromString("fb1e4003-54ae-4a28-9f74-dfccb248601d")
         * */
+
     }
 
     /**
